@@ -1,7 +1,6 @@
-#!/usr/bin/env python3
 """
 Live Google Maps Tracker - Computer Side
-Monitors phone location and generates live Google Maps links
+Windows Compatible Version
 """
 
 import requests
@@ -25,7 +24,7 @@ class LiveMapsTracker:
         self.last_location = None
         
     def clear_console(self):
-        """Clear console for clean display"""
+        """Clear console for clean display - Windows compatible"""
         os.system('cls' if os.name == 'nt' else 'clear')
     
     def print_banner(self):
@@ -39,15 +38,7 @@ class LiveMapsTracker:
         print(banner)
     
     def print_status(self, message, message_type="info"):
-        """Print colored status messages"""
-        colors = {
-            "info": "\033[94m",
-            "success": "\033[92m", 
-            "warning": "\033[93m",
-            "error": "\033[91m",
-            "reset": "\033[0m"
-        }
-        
+        """Print status messages with emojis (no colors for Windows compatibility)"""
         icons = {
             "info": "ℹ️",
             "success": "✅", 
@@ -55,7 +46,7 @@ class LiveMapsTracker:
             "error": "❌"
         }
         
-        print(f"{colors[message_type]}{icons[message_type]} {message}{colors['reset']}")
+        print(f"{icons[message_type]} {message}")
     
     def get_robot_location(self):
         """Get latest location from Firebase"""
@@ -196,12 +187,7 @@ class LiveMapsTracker:
         with open(self.current_map_file, 'w', encoding='utf-8') as f:
             f.write(html_content)
         
-        return self.current_map_file.resolve()
-    
-    def create_maps_dashboard(self, locations_history):
-        """Create a dashboard with multiple map views"""
-        # Implementation for dashboard with history
-        pass
+        return str(self.current_map_file.resolve())
     
     def get_uptime(self):
         """Calculate and format uptime"""
@@ -255,7 +241,7 @@ class LiveMapsTracker:
             first_location
         )
         
-        # Open map in browser
+        # Open map in browser - Windows compatible
         self.print_status("Opening live Google Maps tracker in browser...", "success")
         webbrowser.open(f'file://{map_path}')
         
