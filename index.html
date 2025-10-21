@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Live Robot Tracker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            text-align: center;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        button {
+            background: #4285f4;
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 18px;
+            cursor: pointer;
+            width: 100%;
+            margin: 10px 0;
+        }
+        .coordinates {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 Robot Tracker</h1>
+        <p>Track your robot's location in real-time</p>
+        
+        <button onclick="startTracking()">📍 Start Live Tracking</button>
+        
+        <div id="status">Ready to start tracking...</div>
+        
+        <div class="coordinates">
+            <p>Latitude: <span id="lat">-</span></p>
+            <p>Longitude: <span id="lon">-</span></p>
+            <p>Last Update: <span id="time">-</span></p>
+        </div>
+    </div>
+
+    <script>
+        function startTracking() {
+            document.getElementById('status').textContent = 'Getting location...';
+            
+            if (!navigator.geolocation) {
+                document.getElementById('status').textContent = 'Geolocation not supported';
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    const time = new Date().toLocaleTimeString();
+                    
+                    document.getElementById('lat').textContent = lat.toFixed(6);
+                    document.getElementById('lon').textContent = lon.toFixed(6);
+                    document.getElementById('time').textContent = time;
+                    document.getElementById('status').textContent = '✅ Tracking active!';
+                    
+                    // Create Google Maps link
+                    const mapsLink = `https://www.google.com/maps?q=${lat},${lon}&z=17`;
+                    alert(`📍 Your location:\n${lat}, ${lon}\n\n🗺️ Google Maps:\n${mapsLink}`);
+                },
+                function(error) {
+                    document.getElementById('status').textContent = '❌ Location access denied';
+                }
+            );
+        }
+    </script>
+</body>
+</html>
