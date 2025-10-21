@@ -1,0 +1,16 @@
+{
+  "name": "Robot Permanent Tracker",
+  "short_name": "RobotTrack",
+  "description": "Permanent location tracking for robot",
+  "start_url": "/robot-tracker/tracker.html",
+  "display": "fullscreen",
+  "background_color": "#2d3748",
+  "theme_color": "#48bb78",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
