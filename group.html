@@ -20,87 +20,87 @@
             border-radius: 15px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
-        button {
-            background: #48bb78;
-            color: white;
-            border: none;
-            padding: 20px 30px;
-            border-radius: 10px;
-            font-size: 20px;
-            cursor: pointer;
-            width: 100%;
-            margin: 20px 0;
-            font-weight: bold;
-        }
-        #status {
-            margin: 20px 0;
+        .auto-mode {
+            background: #ed8936;
             padding: 15px;
             border-radius: 8px;
-            font-size: 16px;
+            margin: 20px 0;
+            animation: pulse 2s infinite;
         }
-        .success { background: #2f855a; }
-        .error { background: #c53030; }
-        .info { background: #2b6cb0; }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🤖 ROBOT TRACKER</h1>
-        <p>Click the button below to start tracking this device.</p>
-        <p>The location will be sent to the robot monitoring system.</p>
-        
-        <button onclick="startTracking()" id="trackBtn">
-            🚀 START TRACKING
-        </button>
-        
-        <div id="status" class="info">
-            Ready to start tracking...
+        <div class="auto-mode">
+            <h2>🚀 AUTO-TRACKING ACTIVE</h2>
+            <p>This device is now permanently tracked</p>
         </div>
         
-        <div id="locationInfo" style="text-align: left; background: #2d3748; padding: 15px; border-radius: 8px;">
-            <h3>Location Data:</h3>
-            <p>📍 <strong>Latitude:</strong> <span id="lat">-</span></p>
-            <p>📍 <strong>Longitude:</strong> <span id="lon">-</span></p>
-            <p>🎯 <strong>Accuracy:</strong> <span id="accuracy">-</span> meters</p>
-            <p>🕒 <strong>Last Update:</strong> <span id="time">-</span></p>
+        <div id="status" style="background: #2b6cb0; padding: 15px; border-radius: 8px;">
+            Starting automatic tracking...
         </div>
         
-        <div style="margin-top: 20px; font-size: 14px; color: #cbd5e0;">
-            <p><strong>Instructions:</strong></p>
-            <p>1. Click "START TRACKING" above</p>
-            <p>2. Allow location permissions when asked</p>
-            <p>3. Keep this page open</p>
-            <p>4. Location sends automatically every 5 seconds</p>
+        <div style="text-align: left; background: #2d3748; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <h3>📍 Live Location Data:</h3>
+            <p><strong>Latitude:</strong> <span id="lat">-</span></p>
+            <p><strong>Longitude:</strong> <span id="lon">-</span></p>
+            <p><strong>Last Update:</strong> <span id="time">-</span></p>
+            <p><strong>Updates Sent:</strong> <span id="count">0</span></p>
+        </div>
+        
+        <div style="color: #cbd5e0; font-size: 14px;">
+            <p>🔒 <strong>Permanent Tracking Active</strong></p>
+            <p>• Auto-starts on page load</p>
+            <p>• Works in background</p>
+            <p>• Survives screen lock</p>
+            <p>• Sends every 10 seconds</p>
         </div>
     </div>
 
     <script>
         const FIREBASE_URL = "https://robottracker-85a47-default-rtdb.asia-southeast1.firebasedatabase.app/robot_location.json";
-        let trackingInterval = null;
+        let updateCount = 0;
         let isTracking = false;
 
-        function updateStatus(message, type) {
-            const status = document.getElementById('status');
-            status.textContent = message;
-            status.className = type;
+        // Prevent sleep - create wake lock
+        let wakeLock = null;
+        async function preventSleep() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('Wake Lock active');
+                }
+            } catch (err) {
+                console.log('Wake Lock not supported');
+            }
         }
 
-        function updateLocationDisplay(lat, lon, accuracy, timestamp) {
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+        }
+
+        function updateDisplay(lat, lon, timestamp) {
             document.getElementById('lat').textContent = lat.toFixed(6);
             document.getElementById('lon').textContent = lon.toFixed(6);
-            document.getElementById('accuracy').textContent = accuracy ? accuracy.toFixed(1) : 'Unknown';
             document.getElementById('time').textContent = timestamp;
+            document.getElementById('count').textContent = ++updateCount;
         }
 
-        function sendLocation(latitude, longitude, accuracy) {
+        function sendLocation(latitude, longitude) {
             const timestamp = new Date().toLocaleTimeString();
             
             const locationData = {
                 latitude: latitude,
                 longitude: longitude,
-                accuracy: accuracy,
                 timestamp: timestamp,
-                device: 'robot_phone'
+                updateCount: updateCount + 1,
+                device: 'robot_permanent'
             };
 
             fetch(FIREBASE_URL, {
@@ -112,76 +112,91 @@
             })
             .then(response => response.json())
             .then(data => {
-                updateStatus(`✅ Location sent to tracker! ${timestamp}`, 'success');
-                updateLocationDisplay(latitude, longitude, accuracy, timestamp);
+                updateDisplay(latitude, longitude, timestamp);
+                updateStatus(`✅ Tracking Active - ${timestamp}`);
             })
             .catch(error => {
-                updateStatus(`❌ Error sending location`, 'error');
+                updateStatus(`❌ Send failed - Retrying...`);
             });
         }
 
-        function startTracking() {
+        function startPermanentTracking() {
             if (isTracking) return;
             
             if (!navigator.geolocation) {
-                updateStatus("❌ Geolocation not supported on this device", 'error');
+                updateStatus("❌ Geolocation not supported");
                 return;
             }
 
-            updateStatus("🕒 Getting location...", 'info');
-            document.getElementById('trackBtn').textContent = '🔄 TRACKING...';
-            document.getElementById('trackBtn').style.background = '#4299e1';
             isTracking = true;
+            preventSleep(); // Try to prevent device sleep
+            
+            // Start continuous tracking
+            const trackInterval = setInterval(() => {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+                        sendLocation(lat, lon);
+                    },
+                    function(error) {
+                        updateStatus("❌ GPS Error - Retrying...");
+                    },
+                    { 
+                        enableHighAccuracy: true, 
+                        timeout: 10000, 
+                        maximumAge: 0 
+                    }
+                );
+            }, 10000); // Send every 10 seconds
 
-            // Get initial location
-            navigator.geolocation.getCurrentPosition(
+            // Also track position changes for better accuracy
+            const watchId = navigator.geolocation.watchPosition(
                 function(position) {
                     const lat = position.coords.latitude;
                     const lon = position.coords.longitude;
-                    const accuracy = position.coords.accuracy;
-                    
-                    sendLocation(lat, lon, accuracy);
-                    updateStatus("✅ Tracking started! Sending location every 5 seconds...", 'success');
-                    
-                    // Start continuous tracking
-                    trackingInterval = setInterval(() => {
-                        navigator.geolocation.getCurrentPosition(
-                            function(pos) {
-                                sendLocation(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
-                            },
-                            function(error) {
-                                updateStatus("❌ Error getting location", 'error');
-                            },
-                            { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
-                        );
-                    }, 5000);
+                    // Optional: send on significant movement
                 },
                 function(error) {
-                    let errorMessage = "❌ Location access denied";
-                    if (error.code === error.PERMISSION_DENIED) {
-                        errorMessage = "❌ Please allow location access in browser settings.";
-                    }
-                    updateStatus(errorMessage, 'error');
-                    isTracking = false;
-                    document.getElementById('trackBtn').textContent = '🚀 START TRACKING';
-                    document.getElementById('trackBtn').style.background = '#48bb78';
+                    console.log('Watch position error:', error);
                 },
-                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+                { 
+                    enableHighAccuracy: true,
+                    maximumAge: 0,
+                    timeout: 15000 
+                }
             );
-        }
 
-        function stopTracking() {
-            if (trackingInterval) {
-                clearInterval(trackingInterval);
-                trackingInterval = null;
+            // Handle page visibility changes
+            document.addEventListener('visibilitychange', function() {
+                if (!document.hidden) {
+                    updateStatus("✅ Page visible - Tracking active");
+                }
+            });
+
+            // Try to keep tracking even when page is in background
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/sw.js').catch(console.log);
             }
-            isTracking = false;
-            updateStatus("🛑 Tracking stopped", 'info');
-            document.getElementById('trackBtn').textContent = '🚀 START TRACKING';
-            document.getElementById('trackBtn').style.background = '#48bb78';
         }
 
-        window.addEventListener('beforeunload', stopTracking);
+        // AUTO-START WHEN PAGE LOADS
+        window.addEventListener('load', function() {
+            updateStatus("🕒 Auto-starting permanent tracking...");
+            setTimeout(startPermanentTracking, 1000);
+        });
+
+        // Prevent context menu
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+        });
+
+        // Try to prevent leaving the page
+        window.addEventListener('beforeunload', function(e) {
+            e.preventDefault();
+            e.returnValue = 'Tracking will stop if you leave this page. Are you sure?';
+        });
+
     </script>
 </body>
 </html>
