@@ -1,16 +1,17 @@
 {
-  "name": "Robot Permanent Tracker",
+  "name": "Permanent Robot Tracker",
   "short_name": "RobotTrack",
-  "description": "Permanent location tracking for robot",
+  "description": "24/7 permanent location tracking for robot",
   "start_url": "/robot-tracker/tracker.html",
   "display": "fullscreen",
-  "background_color": "#2d3748",
+  "background_color": "#1a202c",
   "theme_color": "#48bb78",
+  "orientation": "portrait",
   "icons": [
     {
-      "src": "icon.png",
+      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMjQiIGZpbGw9IiM0OGJiNzgiLz4KPHN2ZyB4PSI0OCIgeT0iNDgiIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiPgo8cGF0aCBkPSJNMTIgMTJhMiAyIDAgMSAwIDAtNCAyIDIgMCAwIDAgMCA0eiIvPgo8cGF0aCBkPSJNMTIgMTZ2NSIvPgo8Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSI4Ii8+Cjwvc3ZnPgo8L3N2Zz4K",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/svg+xml"
     }
   ]
 }
