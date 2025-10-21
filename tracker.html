@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Robot Tracker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: #2d3748;
+            color: white;
+            margin: 0;
+            text-align: center;
+        }
+        .container {
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 30px;
+            background: #4a5568;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        button {
+            background: #48bb78;
+            color: white;
+            border: none;
+            padding: 20px 30px;
+            border-radius: 10px;
+            font-size: 20px;
+            cursor: pointer;
+            width: 100%;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        #status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        .success { background: #2f855a; }
+        .error { background: #c53030; }
+        .info { background: #2b6cb0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 ROBOT TRACKER</h1>
+        <p>Click the button below to start tracking this device.</p>
+        <p>The location will be sent to the robot monitoring system.</p>
+        
+        <button onclick="startTracking()" id="trackBtn">
+            🚀 START TRACKING
+        </button>
+        
+        <div id="status" class="info">
+            Ready to start tracking...
+        </div>
+        
+        <div id="locationInfo" style="text-align: left; background: #2d3748; padding: 15px; border-radius: 8px;">
+            <h3>Location Data:</h3>
+            <p>📍 <strong>Latitude:</strong> <span id="lat">-</span></p>
+            <p>📍 <strong>Longitude:</strong> <span id="lon">-</span></p>
+            <p>🎯 <strong>Accuracy:</strong> <span id="accuracy">-</span> meters</p>
+            <p>🕒 <strong>Last Update:</strong> <span id="time">-</span></p>
+        </div>
+        
+        <div style="margin-top: 20px; font-size: 14px; color: #cbd5e0;">
+            <p><strong>Instructions:</strong></p>
+            <p>1. Click "START TRACKING" above</p>
+            <p>2. Allow location permissions when asked</p>
+            <p>3. Keep this page open</p>
+            <p>4. Location sends automatically every 5 seconds</p>
+        </div>
+    </div>
+
+    <script>
+        const FIREBASE_URL = "https://robottracker-85a47-default-rtdb.asia-southeast1.firebasedatabase.app/robot_location.json";
+        let trackingInterval = null;
+        let isTracking = false;
+
+        function updateStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = type;
+        }
+
+        function updateLocationDisplay(lat, lon, accuracy, timestamp) {
+            document.getElementById('lat').textContent = lat.toFixed(6);
+            document.getElementById('lon').textContent = lon.toFixed(6);
+            document.getElementById('accuracy').textContent = accuracy ? accuracy.toFixed(1) : 'Unknown';
+            document.getElementById('time').textContent = timestamp;
+        }
+
+        function sendLocation(latitude, longitude, accuracy) {
+            const timestamp = new Date().toLocaleTimeString();
+            
+            const locationData = {
+                latitude: latitude,
+                longitude: longitude,
+                accuracy: accuracy,
+                timestamp: timestamp,
+                device: 'robot_phone'
+            };
+
+            fetch(FIREBASE_URL, {
+                method: 'PUT',
+                body: JSON.stringify(locationData),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                updateStatus(`✅ Location sent to tracker! ${timestamp}`, 'success');
+                updateLocationDisplay(latitude, longitude, accuracy, timestamp);
+            })
+            .catch(error => {
+                updateStatus(`❌ Error sending location`, 'error');
+            });
+        }
+
+        function startTracking() {
+            if (isTracking) return;
+            
+            if (!navigator.geolocation) {
+                updateStatus("❌ Geolocation not supported on this device", 'error');
+                return;
+            }
+
+            updateStatus("🕒 Getting location...", 'info');
+            document.getElementById('trackBtn').textContent = '🔄 TRACKING...';
+            document.getElementById('trackBtn').style.background = '#4299e1';
+            isTracking = true;
+
+            // Get initial location
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    const accuracy = position.coords.accuracy;
+                    
+                    sendLocation(lat, lon, accuracy);
+                    updateStatus("✅ Tracking started! Sending location every 5 seconds...", 'success');
+                    
+                    // Start continuous tracking
+                    trackingInterval = setInterval(() => {
+                        navigator.geolocation.getCurrentPosition(
+                            function(pos) {
+                                sendLocation(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
+                            },
+                            function(error) {
+                                updateStatus("❌ Error getting location", 'error');
+                            },
+                            { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+                        );
+                    }, 5000);
+                },
+                function(error) {
+                    let errorMessage = "❌ Location access denied";
+                    if (error.code === error.PERMISSION_DENIED) {
+                        errorMessage = "❌ Please allow location access in browser settings.";
+                    }
+                    updateStatus(errorMessage, 'error');
+                    isTracking = false;
+                    document.getElementById('trackBtn').textContent = '🚀 START TRACKING';
+                    document.getElementById('trackBtn').style.background = '#48bb78';
+                },
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+            );
+        }
+
+        function stopTracking() {
+            if (trackingInterval) {
+                clearInterval(trackingInterval);
+                trackingInterval = null;
+            }
+            isTracking = false;
+            updateStatus("🛑 Tracking stopped", 'info');
+            document.getElementById('trackBtn').textContent = '🚀 START TRACKING';
+            document.getElementById('trackBtn').style.background = '#48bb78';
+        }
+
+        window.addEventListener('beforeunload', stopTracking);
+    </script>
+</body>
+</html>
